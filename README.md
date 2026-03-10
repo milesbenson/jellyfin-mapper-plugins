@@ -31,6 +31,7 @@ Requires .NET SDK compatible with Jellyfin.
 Build plugins:
 
 dotnet build Jellyfin.Plugin.GenreMapper
+
 dotnet build Jellyfin.Plugin.RatingMapper
 
 ## Notes
