@@ -36,23 +36,8 @@ dotnet build Jellyfin.Plugin.RatingMapper
 
 ## Examples GenreMapper
 
-`Abenteuer => Adventure
-Dokumentarfilm => Documentary
-Familie => Family
-Historie => History
-Komödie => Comedy
-Krimi => Crime
-Liebesfilm => Romance
-Kriegsfilm => War
-Comendy => Comedy
-Science Fiction => Sci-Fi
-Sci-Fi & Fantasy => Sci-Fi|Fantasy
-War & Politics => War
-Suspense =>
-Talk =>
-Soap =>
-TV-Film =>
-Action & Adventure => Action|Adventure`
+`Abenteuer => Adventure`
+`Sci-Fi & Fantasy => Sci-Fi|Fantasy`
 
 ## Examples RatingMapper
 
