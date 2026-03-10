@@ -1,0 +1,8 @@
+{
+  "name": "Rating Mapper",
+  "guid": "f2b7c0a9-4e5d-4d3c-b2a1-2e3c4d5f6a77",
+  "owner": "benZol"
+  "version": "0.0.1",
+  "targetAbi": "10.11.6",
+  "description": "Maps parental ratings in Jellyfin libraries."
+}
