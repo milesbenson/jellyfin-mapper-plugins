@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Genre Mapper</title>
+</head>
+<body>
+    <div data-role="page" class="page type-interior pluginConfigurationPage genreMapperConfigPage">
+        <div data-role="content">
+            <div class="content-primary">
+
+                <form class="genreMapperConfigForm">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">Genre Mapper</h2>
+                    </div>
+
+                    <div class="verticalSection">
+                        <p>Mehrere Zielgenres mit <b>|</b> trennen, z. B. <b>Action &amp; Adventure =&gt; Action|Adventure</b>.</p>
+                        <p>Leeres Ziel löscht das Genre, z. B. <b>Talk =&gt;</b>.</p>
+                        <p>Ausführen danach über <b>Dashboard → Geplante Aufgaben → Genre Mapper</b>.</p>
+                    </div>
+
+                    <div class="checkboxContainer">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="Enabled" />
+                            <span>Plugin aktiviert</span>
+                        </label>
+                    </div>
+
+                    <div class="checkboxContainer">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="DryRun" />
+                            <span>Nur Testlauf (nichts speichern)</span>
+                        </label>
+                    </div>
+
+                    <div class="checkboxContainer">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="IgnoreCase" />
+                            <span>Groß-/Kleinschreibung ignorieren</span>
+                        </label>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3>Bibliotheken</h3>
+                        <div id="LibrariesContainer"></div>
+                        <div class="fieldDescription">Keine Auswahl = alle Bibliotheken.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="Mappings">Mappings</label>
+                        <textarea id="Mappings" class="emby-input" rows="14" style="width:100%;min-height:300px;"></textarea>
+                        <div class="fieldDescription">Eine Regel pro Zeile. Mehrere Zielgenres mit |. Leeres Ziel löscht.</div>
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block">
+                            <span>Speichern</span>
+                        </button>
+                    </div>
+
+                    <div id="SaveResult" style="margin-top:1em;"></div>
+                </form>
+
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            (function () {
+                var pluginId = "1d59c81d-50a4-4b28-aed7-86a4fd0c8c91";
+
+                function escapeHtml(text) {
+                    return (text || "")
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;");
+                }
+
+                function getAllLibraries() {
+                    return ApiClient.getJSON(ApiClient.getUrl("Library/VirtualFolders"));
+                }
+
+                function renderLibraries(allLibraries, selectedLibraryNames) {
+                    var container = document.getElementById("LibrariesContainer");
+                    container.innerHTML = "";
+
+                    var selected = {};
+                    (selectedLibraryNames || []).forEach(function (name) {
+                        selected[(name || "").toLowerCase()] = true;
+                    });
+
+                    allLibraries.forEach(function (lib, index) {
+                        var name = (lib.Name || "").trim();
+                        if (!name) {
+                            return;
+                        }
+
+                        var id = "lib_" + index;
+                        var checked = selected[name.toLowerCase()] ? " checked='checked'" : "";
+
+                        var html =
+                            "<div class='checkboxContainer'>" +
+                                "<label for='" + id + "'>" +
+                                    "<input is='emby-checkbox' type='checkbox' class='libraryCheckbox' id='" + id + "' data-library-name='" + escapeHtml(name) + "'" + checked + " />" +
+                                    "<span>" + escapeHtml(name) + "</span>" +
+                                "</label>" +
+                            "</div>";
+
+                        container.insertAdjacentHTML("beforeend", html);
+                    });
+                }
+
+                function getSelectedLibraryNames() {
+                    var result = [];
+                    var checkboxes = document.querySelectorAll(".libraryCheckbox");
+
+                    checkboxes.forEach(function (cb) {
+                        if (cb.checked) {
+                            var name = cb.getAttribute("data-library-name") || "";
+                            if (name) {
+                                result.push(name);
+                            }
+                        }
+                    });
+
+                    return result;
+                }
+
+                function loadPage() {
+                    Dashboard.showLoadingMsg();
+
+                    Promise.all([
+                        ApiClient.getPluginConfiguration(pluginId),
+                        getAllLibraries()
+                    ]).then(function (results) {
+                        var config = results[0];
+                        var libraries = results[1] || [];
+
+                        document.getElementById("Enabled").checked = !!config.Enabled;
+                        document.getElementById("DryRun").checked = !!config.DryRun;
+                        document.getElementById("IgnoreCase").checked = !!config.IgnoreCase;
+                        document.getElementById("Mappings").value = config.MappingsText || "";
+
+                        renderLibraries(libraries, config.LibraryNames || []);
+                        document.getElementById("SaveResult").innerHTML = "";
+                        Dashboard.hideLoadingMsg();
+                    }).catch(function (err) {
+                        console.error(err);
+                        document.getElementById("SaveResult").innerHTML = "Laden fehlgeschlagen.";
+                        Dashboard.hideLoadingMsg();
+                    });
+                }
+
+                function bindPage() {
+                    var form = document.querySelector(".genreMapperConfigForm");
+                    if (!form || form.dataset.bound === "true") {
+                        return;
+                    }
+
+                    form.dataset.bound = "true";
+
+                    form.addEventListener("submit", function (e) {
+                        e.preventDefault();
+
+                        Dashboard.showLoadingMsg();
+
+                        ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                            config.Enabled = document.getElementById("Enabled").checked;
+                            config.DryRun = document.getElementById("DryRun").checked;
+                            config.IgnoreCase = document.getElementById("IgnoreCase").checked;
+                            config.LibraryNames = getSelectedLibraryNames();
+                            config.MappingsText = document.getElementById("Mappings").value || "";
+
+                            return ApiClient.updatePluginConfiguration(pluginId, config);
+                        }).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                            document.getElementById("SaveResult").innerHTML = "Gespeichert.";
+                            Dashboard.hideLoadingMsg();
+                            return loadPage();
+                        }).catch(function (err) {
+                            console.error(err);
+                            document.getElementById("SaveResult").innerHTML = "Speichern fehlgeschlagen.";
+                            Dashboard.hideLoadingMsg();
+                        });
+
+                        return false;
+                    });
+                }
+
+                document.addEventListener("pageshow", function () {
+                    var page = document.querySelector(".genreMapperConfigPage");
+                    if (!page) {
+                        return;
+                    }
+
+                    bindPage();
+                    loadPage();
+                });
+            })();
+        </script>
+    </div>
+</body>
+</html>

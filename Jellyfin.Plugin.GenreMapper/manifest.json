@@ -1,0 +1,8 @@
+{
+  "name": "Genre Mapper",
+  "guid": "baf1f6e2-2e18-4e2e-9a8a-3c1d4e1b9f11",
+  "owner": "benZol"
+  "version": "0.0.1",
+  "targetAbi": "10.11.6",
+  "description": "Maps genres in Jellyfin libraries."
+}
